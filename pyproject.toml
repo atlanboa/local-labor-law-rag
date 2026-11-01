@@ -1,0 +1,14 @@
+[project]
+name = "lawbot"
+version = "0.1.0"
+description = "근로기준법 중심 로컬 RAG 상담봇"
+readme = "README.md"
+authors = [
+    { name = "atlanboa" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
