@@ -1,0 +1,151 @@
+{
+  "api": "http://www.law.go.kr/DRF/lawService.do",
+  "collected_at": "2026-11-02",
+  "files": [
+    {
+      "file": "labor-standards-act.law.json",
+      "law": "근로기준법",
+      "params": {
+        "target": "law",
+        "LM": "근로기준법"
+      },
+      "sha256": "9cfc25c23095214b6e66a8cf8d425e459ee6d57fd77ec9a9490c44330cdf05e7"
+    },
+    {
+      "file": "labor-standards-act.thdCmp-knd1.json",
+      "law": "근로기준법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "001872"
+      },
+      "sha256": "dbc4a0ff6b058ea72df1f121cc35bb9e3088906747b209cdd8a8f5332dab029e"
+    },
+    {
+      "file": "labor-standards-act.thdCmp-knd2.json",
+      "law": "근로기준법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "001872"
+      },
+      "sha256": "e65d390e890a69585e0729ab7ee6635ae22a8d96a49e69accb4b9fdb3b58a444"
+    },
+    {
+      "file": "labor-standards-decree.law.json",
+      "law": "근로기준법 시행령",
+      "params": {
+        "target": "law",
+        "LM": "근로기준법 시행령"
+      },
+      "sha256": "a3d26d00930489045a7a0997742210733d9ee8cc30e3c9b120453cf8135e4740"
+    },
+    {
+      "file": "labor-standards-decree.thdCmp-knd1.json",
+      "law": "근로기준법 시행령",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "003058"
+      },
+      "sha256": "fbfda33f16690ec937d7b13c089852592e24b7644cb2aa192c5f373cd41e5aa9"
+    },
+    {
+      "file": "labor-standards-decree.thdCmp-knd2.json",
+      "law": "근로기준법 시행령",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "003058"
+      },
+      "sha256": "43943fc58b2d8fdb59e0f6353d25db920d7e61f616f95999a9fc88e34f172558"
+    },
+    {
+      "file": "minimum-wage-act.law.json",
+      "law": "최저임금법",
+      "params": {
+        "target": "law",
+        "LM": "최저임금법"
+      },
+      "sha256": "c04ffeadd3eb154cfd5d840ad83840bcf00f49c0037060d2c66b23f2756da25b"
+    },
+    {
+      "file": "minimum-wage-act.thdCmp-knd1.json",
+      "law": "최저임금법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "000129"
+      },
+      "sha256": "d4e153609e071a04d6671189898c3e1f42984110f6a1f83cbef80c480ac7867c"
+    },
+    {
+      "file": "minimum-wage-act.thdCmp-knd2.json",
+      "law": "최저임금법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "000129"
+      },
+      "sha256": "dadae606196a818c0ec1779d9726bedecb35a99c1701e6d010232d4030cda0bb"
+    },
+    {
+      "file": "retirement-benefit-act.law.json",
+      "law": "근로자퇴직급여 보장법",
+      "params": {
+        "target": "law",
+        "LM": "근로자퇴직급여 보장법"
+      },
+      "sha256": "ab4b2a861da0ff030d5a9845f5ce65fa164ccfab6893d8534448538df2f3d940"
+    },
+    {
+      "file": "retirement-benefit-act.thdCmp-knd1.json",
+      "law": "근로자퇴직급여 보장법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "009883"
+      },
+      "sha256": "4a28cfc77a27bbb409a9f8c9984d659181c350238af2152cfd536380c9c439e0"
+    },
+    {
+      "file": "retirement-benefit-act.thdCmp-knd2.json",
+      "law": "근로자퇴직급여 보장법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "009883"
+      },
+      "sha256": "87427856dda989499d66a9cc62cf44775e46c25c02ddbc5bb20279f1542f7037"
+    },
+    {
+      "file": "gender-equality-act.law.json",
+      "law": "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률",
+      "params": {
+        "target": "law",
+        "LM": "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률"
+      },
+      "sha256": "efef2f102a8f4b698b7905bc1d27e1d108471c698ddf36fb3572f5f81fa69b44"
+    },
+    {
+      "file": "gender-equality-act.thdCmp-knd1.json",
+      "law": "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "000130"
+      },
+      "sha256": "b5e0be9f87e3df69db6ba9d2da1cc054fc94c1cb43e6af7a8b5d429ca5be7307"
+    },
+    {
+      "file": "gender-equality-act.thdCmp-knd2.json",
+      "law": "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "000130"
+      },
+      "sha256": "f75a62d504e5bd8a7fa9ae06f9cbaa376774589fef2e7acef68e398d38a9b48c"
+    }
+  ]
+}
