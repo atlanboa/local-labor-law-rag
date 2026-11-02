@@ -43,10 +43,11 @@
       "file": "labor-standards-decree.law.json",
       "law": "근로기준법 시행령",
       "params": {
-        "target": "law",
-        "LM": "근로기준법 시행령"
+        "target": "eflaw",
+        "MST": "270551",
+        "efYd": "20251023"
       },
-      "sha256": "a3d26d00930489045a7a0997742210733d9ee8cc30e3c9b120453cf8135e4740"
+      "sha256": "884f7c37d9678743647bfe4d5c3e221ac505823ba4806242ec533f68269c9ac9"
     },
     {
       "file": "minimum-wage-act.law.json",

@@ -18,18 +18,17 @@ RAW_DIR = ROOT / "data" / "raw"
 @dataclass(frozen=True, slots=True)
 class LawSpec:
     name: str
-    body_target: str
     collect_thd_cmp: bool
 
 
 LAWS = {
-    "labor-standards-act": LawSpec("근로기준법", "eflaw", True),
+    "labor-standards-act": LawSpec("근로기준법", True),
     # Decree thdCmp adds nothing: knd1 answers for the parent act, knd2 for an unrelated law.
-    "labor-standards-decree": LawSpec("근로기준법 시행령", "law", False),
-    "minimum-wage-act": LawSpec("최저임금법", "eflaw", True),
-    "retirement-benefit-act": LawSpec("근로자퇴직급여 보장법", "eflaw", True),
+    "labor-standards-decree": LawSpec("근로기준법 시행령", False),
+    "minimum-wage-act": LawSpec("최저임금법", True),
+    "retirement-benefit-act": LawSpec("근로자퇴직급여 보장법", True),
     # Middle dot is U+318D, not U+00B7; normalize_title accepts either in responses.
-    "gender-equality-act": LawSpec("남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률", "eflaw", True),
+    "gender-equality-act": LawSpec("남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률", True),
 }
 THD_CMP_SERVICES = {1: "ThdCmpLawXService", 2: "LspttnThdCmpLawXService"}
 
@@ -75,49 +74,25 @@ def normalize_title(title: str) -> str:
     return title.replace("·", "ㆍ").replace(" ", "")
 
 
-def find_current_version(client: httpx.Client, oc: str, law: str, today: str) -> LawVersion:
+def find_current_version(client: httpx.Client, oc: str, law: str) -> LawVersion:
     # Not stored: search responses embed the key in their detail links.
     params = {"OC": oc, "type": "JSON", "target": "eflaw", "query": law, "nw": "3", "display": "100"}
-    response = client.get(SEARCH_URL, params=params)
-    if response.status_code != 200:
-        raise CollectError(f"{law}: 검색 HTTP {response.status_code}")
-    try:
-        items = response.json()["LawSearch"]["law"]
-        items = items if isinstance(items, list) else [items]
-        current = [
-            LawVersion(item["법령일련번호"], item["시행일자"])
-            for item in items
-            if normalize_title(item["법령명한글"]) == normalize_title(law) and item["현행연혁코드"] == "현행"
-        ]
-    except (ValueError, KeyError, TypeError) as error:
-        raise CollectError(f"{law}: 검색 응답을 해석하지 못했다") from error
-    if len(current) != 1:
-        raise CollectError(f"{law}: 현행 법령을 하나로 특정하지 못했다({len(current)}건)")
-    if current[0].effective_date > today:
-        raise CollectError(f"{law}: 현행 시행일자 {current[0].effective_date}가 오늘 이후다")
-    return current[0]
-
-
-def basic_info(raw: RawResponse) -> dict:
-    try:
-        return json.loads(raw.body)["법령"]["기본정보"]
-    except (KeyError, TypeError) as error:
-        raise CollectError(f"{raw.filename}: 기본정보를 찾지 못했다") from error
+    items = client.get(SEARCH_URL, params=params).json()["LawSearch"]["law"]
+    # A single search hit comes back as an object, not a list.
+    for item in items if isinstance(items, list) else [items]:
+        if normalize_title(item["법령명한글"]) == normalize_title(law):
+            return LawVersion(item["법령일련번호"], item["시행일자"])
+    raise CollectError(f"{law}: 검색 결과에 없다")
 
 
 def parse_law_id(raw: RawResponse) -> str:
-    info = basic_info(raw)
     try:
-        title, law_id, effective_date = info["법령명_한글"], info["법령ID"], info["시행일자"]
+        info = json.loads(raw.body)["법령"]["기본정보"]
+        title, law_id = info["법령명_한글"], info["법령ID"]
     except (KeyError, TypeError) as error:
         raise CollectError(f"{raw.filename}: 기본정보를 찾지 못했다") from error
     if normalize_title(title) != normalize_title(raw.law):
         raise CollectError(f"{raw.filename}: {raw.law}를 요청했는데 {title}가 왔다")
-    requested_date = raw.params.get("efYd", effective_date)
-    if effective_date != requested_date:
-        raise CollectError(f"{raw.filename}: 시행일자 {requested_date}를 요청했는데 {effective_date}가 왔다")
-    if not isinstance(law_id, str):
-        raise CollectError(f"{raw.filename}: 법령ID가 문자열이 아니다")
     return law_id
 
 
@@ -130,19 +105,12 @@ def check_thd_cmp_law_id(raw: RawResponse, service: str, law_id: str) -> None:
         raise CollectError(f"{raw.filename}: 법령ID {law_id}를 요청했는데 {actual!r}가 왔다")
 
 
-def fetch_body(client: httpx.Client, oc: str, slug: str, spec: LawSpec, today: str) -> RawResponse:
-    if spec.body_target == "law":
-        params = {"target": "law", "LM": spec.name}
-    else:
-        version = find_current_version(client, oc, spec.name, today)
-        params = {"target": "eflaw", "MST": version.mst, "efYd": version.effective_date}
-    return fetch(client, oc, f"{slug}.law.json", spec.name, params)
-
-
-def fetch_all(client: httpx.Client, oc: str, today: str) -> list[RawResponse]:
+def fetch_all(client: httpx.Client, oc: str) -> list[RawResponse]:
     responses = []
     for slug, spec in LAWS.items():
-        body = fetch_body(client, oc, slug, spec, today)
+        version = find_current_version(client, oc, spec.name)
+        params = {"target": "eflaw", "MST": version.mst, "efYd": version.effective_date}
+        body = fetch(client, oc, f"{slug}.law.json", spec.name, params)
         law_id = parse_law_id(body)
         responses.append(body)
         if not spec.collect_thd_cmp:
@@ -169,7 +137,9 @@ def write_raw(responses: list[RawResponse], out_dir: Path, collected_at: str) ->
             }
         )
     article_effective_dates = {
-        raw.law: basic_info(raw).get("조문시행일자문자열") for raw in responses if raw.params["target"] != "thdCmp"
+        raw.law: json.loads(raw.body)["법령"]["기본정보"].get("조문시행일자문자열")
+        for raw in responses
+        if raw.params["target"] == "eflaw"
     }
     manifest = {
         "api": API_URL,
@@ -187,18 +157,17 @@ def main() -> int:
     if not oc:
         print(f"LAW_API_OC가 {ENV_PATH}에 없거나 비어 있다", file=sys.stderr)
         return 1
-    today = date.today()
     try:
         with httpx.Client(timeout=60) as client:
             # Fetch everything first so a failed run leaves earlier raw files intact.
-            responses = fetch_all(client, oc, today.strftime("%Y%m%d"))
+            responses = fetch_all(client, oc)
     except CollectError as error:
         print(error, file=sys.stderr)
         return 1
     except httpx.HTTPError as error:
         print(f"요청 실패: {type(error).__name__}", file=sys.stderr)
         return 1
-    write_raw(responses, RAW_DIR, today.isoformat())
+    write_raw(responses, RAW_DIR, date.today().isoformat())
     print(f"{len(responses)}개 응답을 {RAW_DIR}에 저장했다")
     return 0
 

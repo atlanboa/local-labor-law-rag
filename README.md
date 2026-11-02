@@ -18,7 +18,7 @@ cp .env.example .env
 uv run python -m lawbot.collect
 ```
 
-법률 본문은 오늘 시행 중인 판을 `target=eflaw`로 받는다. 근로기준법 시행령은 `target=law` 본문만 받고 `thdCmp`는 받지 않는다. 시행 전 조문은 `manifest.json`의 `article_effective_dates`에 법령별로 남는다.
+법령 본문은 오늘 시행 중인 판을 `target=eflaw`로 받는다. 근로기준법 시행령은 `thdCmp`를 받지 않는다. 시행 전 조문은 `manifest.json`의 `article_effective_dates`에 법령별로 남는다.
 
 테스트는 네트워크 없이 돈다.
 
