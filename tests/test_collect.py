@@ -12,19 +12,24 @@ EFFECTIVE_DATE = "20200101"
 
 
 def search_item(title, serial):
-    link = f"/DRF/lawService.do?OC={KEY}"
-    return {"법령명한글": title, "법령일련번호": serial, "시행일자": EFFECTIVE_DATE, "법령상세링크": link}
+    return {
+        "법령명한글": title,
+        "법령일련번호": serial,
+        "시행일자": EFFECTIVE_DATE,
+        "현행연혁코드": "현행",
+        "법령상세링크": f"/DRF/lawService.do?OC={KEY}",
+    }
 
 
-def search_body(law):
-    item = search_item(law, LAW_IDS[law])
+def search_body(law, **overrides):
+    item = search_item(law, LAW_IDS[law]) | overrides
     # The real API answers the decree's single hit with an object and the others with a list.
     items = item if law == DECREE else [search_item(f"{law} 시행규칙", "999999"), item]
     return json.dumps({"LawSearch": {"law": items}}, ensure_ascii=False).encode()
 
 
 def law_body(law, dates="20991231:제1조"):
-    info = {"법령명_한글": law, "법령ID": LAW_IDS[law], "조문시행일자문자열": dates}
+    info = {"법령명_한글": law, "법령ID": LAW_IDS[law], "시행일자": EFFECTIVE_DATE, "조문시행일자문자열": dates}
     return json.dumps({"법령": {"기본정보": info}}, ensure_ascii=False).encode()
 
 
@@ -35,13 +40,14 @@ def thd_cmp_body(kind, law_id):
 class FakeApi:
     def __init__(self):
         self.requests = []
+        self.search = search_body
         self.thd_cmp = {}
 
     def __call__(self, request):
         self.requests.append(request)
         params = request.url.params
         if request.url.path.endswith("lawSearch.do"):
-            return httpx.Response(200, content=search_body(params["query"]))
+            return httpx.Response(200, content=self.search(params["query"]))
         if params["target"] == "eflaw":
             law = next(law for law, law_id in LAW_IDS.items() if law_id == params["MST"])
             return httpx.Response(200, content=law_body(law))
@@ -135,3 +141,18 @@ def test_thd_cmp_knd2_is_checked_against_its_own_service(api):
 
     assert existing.read_bytes() == b"previous run"
 
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({"시행일자": "29991231"}, id="future-effective-date"),
+        pytest.param({"현행연혁코드": "연혁"}, id="not-current"),
+    ],
+)
+def test_search_without_version_in_force_today_stops_collection(api, overrides):
+    existing = seed_raw_files()
+    api.search = lambda law: search_body(law, **overrides)
+
+    assert collect.main() == 1
+
+    assert existing.read_bytes() == b"previous run"

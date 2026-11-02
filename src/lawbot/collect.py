@@ -74,25 +74,42 @@ def normalize_title(title: str) -> str:
     return title.replace("·", "ㆍ").replace(" ", "")
 
 
-def find_current_version(client: httpx.Client, oc: str, law: str) -> LawVersion:
+def find_current_version(client: httpx.Client, oc: str, law: str, today: str) -> LawVersion:
     # Not stored: search responses embed the key in their detail links.
     params = {"OC": oc, "type": "JSON", "target": "eflaw", "query": law, "nw": "3", "display": "100"}
-    items = client.get(SEARCH_URL, params=params).json()["LawSearch"]["law"]
-    # A single search hit comes back as an object, not a list.
-    for item in items if isinstance(items, list) else [items]:
-        if normalize_title(item["법령명한글"]) == normalize_title(law):
-            return LawVersion(item["법령일련번호"], item["시행일자"])
-    raise CollectError(f"{law}: 검색 결과에 없다")
+    response = client.get(SEARCH_URL, params=params)
+    if response.status_code != 200:
+        raise CollectError(f"{law}: 검색 HTTP {response.status_code}")
+    try:
+        items = response.json()["LawSearch"]["law"]
+        # A single search hit comes back as an object, not a list.
+        items = items if isinstance(items, list) else [items]
+        current = [
+            LawVersion(item["법령일련번호"], item["시행일자"])
+            for item in items
+            if normalize_title(item["법령명한글"]) == normalize_title(law) and item["현행연혁코드"] == "현행"
+        ]
+    except (ValueError, KeyError, TypeError) as error:
+        raise CollectError(f"{law}: 검색 응답을 해석하지 못했다") from error
+    if len(current) != 1:
+        raise CollectError(f"{law}: 현행 법령을 하나로 특정하지 못했다({len(current)}건)")
+    if current[0].effective_date > today:
+        raise CollectError(f"{law}: 현행 시행일자 {current[0].effective_date}가 오늘 이후다")
+    return current[0]
 
 
 def parse_law_id(raw: RawResponse) -> str:
     try:
         info = json.loads(raw.body)["법령"]["기본정보"]
-        title, law_id = info["법령명_한글"], info["법령ID"]
+        title, law_id, effective_date = info["법령명_한글"], info["법령ID"], info["시행일자"]
     except (KeyError, TypeError) as error:
         raise CollectError(f"{raw.filename}: 기본정보를 찾지 못했다") from error
     if normalize_title(title) != normalize_title(raw.law):
         raise CollectError(f"{raw.filename}: {raw.law}를 요청했는데 {title}가 왔다")
+    if effective_date != raw.params["efYd"]:
+        raise CollectError(f"{raw.filename}: 시행일자 {raw.params['efYd']}를 요청했는데 {effective_date}가 왔다")
+    if not isinstance(law_id, str):
+        raise CollectError(f"{raw.filename}: 법령ID가 문자열이 아니다")
     return law_id
 
 
@@ -105,10 +122,10 @@ def check_thd_cmp_law_id(raw: RawResponse, service: str, law_id: str) -> None:
         raise CollectError(f"{raw.filename}: 법령ID {law_id}를 요청했는데 {actual!r}가 왔다")
 
 
-def fetch_all(client: httpx.Client, oc: str) -> list[RawResponse]:
+def fetch_all(client: httpx.Client, oc: str, today: str) -> list[RawResponse]:
     responses = []
     for slug, spec in LAWS.items():
-        version = find_current_version(client, oc, spec.name)
+        version = find_current_version(client, oc, spec.name, today)
         params = {"target": "eflaw", "MST": version.mst, "efYd": version.effective_date}
         body = fetch(client, oc, f"{slug}.law.json", spec.name, params)
         law_id = parse_law_id(body)
@@ -157,17 +174,18 @@ def main() -> int:
     if not oc:
         print(f"LAW_API_OC가 {ENV_PATH}에 없거나 비어 있다", file=sys.stderr)
         return 1
+    today = date.today()
     try:
         with httpx.Client(timeout=60) as client:
             # Fetch everything first so a failed run leaves earlier raw files intact.
-            responses = fetch_all(client, oc)
+            responses = fetch_all(client, oc, today.strftime("%Y%m%d"))
     except CollectError as error:
         print(error, file=sys.stderr)
         return 1
     except httpx.HTTPError as error:
         print(f"요청 실패: {type(error).__name__}", file=sys.stderr)
         return 1
-    write_raw(responses, RAW_DIR, date.today().isoformat())
+    write_raw(responses, RAW_DIR, today.isoformat())
     print(f"{len(responses)}개 응답을 {RAW_DIR}에 저장했다")
     return 0
 
