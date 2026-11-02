@@ -1,0 +1,143 @@
+{
+  "api": "https://www.law.go.kr/DRF/lawService.do",
+  "collected_at": "2026-11-02",
+  "article_effective_dates": {
+    "근로기준법": "20261208:제13조,제101조,제102조,제102조의2,제103조,제104조,제105조,제108조,제110조제1호,제114조제1호,제116조제2항제1호,제116조제2항제4호20270101:제44조의4,제116조제1항제2호,제116조제2항제2호",
+    "근로기준법 시행령": null,
+    "최저임금법": null,
+    "근로자퇴직급여 보장법": "20260918:제43조,제44조",
+    "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률": null
+  },
+  "files": [
+    {
+      "file": "labor-standards-act.law.json",
+      "law": "근로기준법",
+      "params": {
+        "target": "eflaw",
+        "MST": "285279",
+        "efYd": "20261008"
+      },
+      "sha256": "357a149514c00e5b89920d58200272cc5c5abdaa1152a6339cfe54ba025f7e26"
+    },
+    {
+      "file": "labor-standards-act.thdCmp-knd1.json",
+      "law": "근로기준법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "001872"
+      },
+      "sha256": "dbc4a0ff6b058ea72df1f121cc35bb9e3088906747b209cdd8a8f5332dab029e"
+    },
+    {
+      "file": "labor-standards-act.thdCmp-knd2.json",
+      "law": "근로기준법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "001872"
+      },
+      "sha256": "e65d390e890a69585e0729ab7ee6635ae22a8d96a49e69accb4b9fdb3b58a444"
+    },
+    {
+      "file": "labor-standards-decree.law.json",
+      "law": "근로기준법 시행령",
+      "params": {
+        "target": "eflaw",
+        "MST": "270551",
+        "efYd": "20251023"
+      },
+      "sha256": "884f7c37d9678743647bfe4d5c3e221ac505823ba4806242ec533f68269c9ac9"
+    },
+    {
+      "file": "minimum-wage-act.law.json",
+      "law": "최저임금법",
+      "params": {
+        "target": "eflaw",
+        "MST": "218303",
+        "efYd": "20200526"
+      },
+      "sha256": "406c44575bfc29f06c1139d193ec5a74d12f3d73bbd1fd5f2f6640b9cc9ad7a2"
+    },
+    {
+      "file": "minimum-wage-act.thdCmp-knd1.json",
+      "law": "최저임금법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "000129"
+      },
+      "sha256": "d4e153609e071a04d6671189898c3e1f42984110f6a1f83cbef80c480ac7867c"
+    },
+    {
+      "file": "minimum-wage-act.thdCmp-knd2.json",
+      "law": "최저임금법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "000129"
+      },
+      "sha256": "dadae606196a818c0ec1779d9726bedecb35a99c1701e6d010232d4030cda0bb"
+    },
+    {
+      "file": "retirement-benefit-act.law.json",
+      "law": "근로자퇴직급여 보장법",
+      "params": {
+        "target": "eflaw",
+        "MST": "284455",
+        "efYd": "20260918"
+      },
+      "sha256": "759f5ecc8787f40356a530c5c7ea3022296f6b4f08174865ce87b1d14d002be1"
+    },
+    {
+      "file": "retirement-benefit-act.thdCmp-knd1.json",
+      "law": "근로자퇴직급여 보장법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "009883"
+      },
+      "sha256": "4a28cfc77a27bbb409a9f8c9984d659181c350238af2152cfd536380c9c439e0"
+    },
+    {
+      "file": "retirement-benefit-act.thdCmp-knd2.json",
+      "law": "근로자퇴직급여 보장법",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "009883"
+      },
+      "sha256": "87427856dda989499d66a9cc62cf44775e46c25c02ddbc5bb20279f1542f7037"
+    },
+    {
+      "file": "gender-equality-act.law.json",
+      "law": "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률",
+      "params": {
+        "target": "eflaw",
+        "MST": "284457",
+        "efYd": "20260918"
+      },
+      "sha256": "b7ef9767fe2b6a91ea92eb8b7dd1374751e8990a9743c70c51e47b3f559abad1"
+    },
+    {
+      "file": "gender-equality-act.thdCmp-knd1.json",
+      "law": "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률",
+      "params": {
+        "target": "thdCmp",
+        "knd": "1",
+        "ID": "000130"
+      },
+      "sha256": "b5e0be9f87e3df69db6ba9d2da1cc054fc94c1cb43e6af7a8b5d429ca5be7307"
+    },
+    {
+      "file": "gender-equality-act.thdCmp-knd2.json",
+      "law": "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률",
+      "params": {
+        "target": "thdCmp",
+        "knd": "2",
+        "ID": "000130"
+      },
+      "sha256": "f75a62d504e5bd8a7fa9ae06f9cbaa376774589fef2e7acef68e398d38a9b48c"
+    }
+  ]
+}
