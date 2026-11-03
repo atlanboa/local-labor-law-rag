@@ -129,11 +129,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"data/raw에 없는 청크 id: {error.args[0]}", file=sys.stderr)
             return 1
     else:
-        try:
-            chunks = search(args.question, config.TOP_K)
-        except NotImplementedError:
-            print("search가 아직 구현되지 않았다. --chunks로 청크 id를 지정하라.", file=sys.stderr)
-            return 1
+        chunks = search(args.question, config.TOP_K)
 
     try:
         result, stats = answer_with_stats(args.question, chunks)

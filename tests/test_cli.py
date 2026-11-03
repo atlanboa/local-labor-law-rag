@@ -64,12 +64,6 @@ def test_unknown_chunk_id_fails(ollama, capsys):
     assert ollama.prompts == []
 
 
-def test_ask_without_chunks_reports_unimplemented_search(ollama, capsys):
-    assert cli.main(["질문"]) == 1
-
-    assert "--chunks" in capsys.readouterr().err
-
-
 def test_ask_uses_search_results_with_top_k(ollama, monkeypatch, capsys):
     calls = []
     chunk = Chunk("근로기준법 제26조", "근로기준법", "제26조", "해고의 예고", "근로기준법 제26조 본문", "20261008", "2026-11-02")
