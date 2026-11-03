@@ -194,6 +194,14 @@ def test_judge_prompt_marks_missing_chunks():
     assert evaluate.EXPECTED_BEHAVIOR["근거없음"] in prompt
 
 
+def test_judge_prompt_gives_dates_the_answer_footer_cites():
+    question = evaluate.Question("q", "질문", "단일", ("근로기준법 제13조",), ("a",))
+    dated = Chunk("근로기준법 제13조", "근로기준법", "제13조", "", "본문", "20261008", "2026-11-02", (), ("20261208",))
+    prompt = evaluate.judge_prompt(question, [dated], Answer(text="답 [1]\n\n출처:\n[1] 근로기준법 제13조 (2026-10-08 시행 기준)"))
+    assert 'effective_date="20261008"' in prompt
+    assert 'pending_effective_dates="20261208"' in prompt
+
+
 def test_limited_run_compares_only_shared_questions(workspace, capsys):
     evaluate.main(["--only", "search", "--save-baseline"])
     capsys.readouterr()

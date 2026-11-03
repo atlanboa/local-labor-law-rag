@@ -23,7 +23,7 @@ from lawbot.models import Answer, Chunk
 from lawbot.search import get_chunks, search
 
 # Bump when the judge prompt or schema changes, so cached verdicts are not reused.
-RUBRIC_VERSION = "1"
+RUBRIC_VERSION = "2"
 NO_BASIS = "근거없음"
 NEEDS_INTERPRETATION = "해석필요"
 
@@ -44,6 +44,8 @@ JUDGE_SYSTEM = """당신은 한국 노동법 상담봇의 답변을 채점한다
 2. fabricated: 답변이 제공된 조문에 없는 법적 내용(조문 번호, 기한, 금액, 비율, 요건, 효과)을 사실처럼 말했으면 true다. 일반적인 안내(노무사나 고용노동부 문의 권유, 면책 문구)는 지어낸 것이 아니다. 조문이 하나도 제공되지 않았는데 구체적인 법적 내용을 단정하면 true다.
 3. citations_supported: 답변이 인용한 조문이 모두 제공된 조문에 있고, 답변에서 그 조문을 근거로 한 내용을 실제로 뒷받침하면 true다. 인용이 없는데 법적 내용을 말했으면 false다. 관련 조문이 없다고 답하는 문항에서 인용이 없으면 true다.
 4. expected_behavior_met: 질문 유형별 정답 행동을 지켰는지 판단한다.
+
+답변 끝의 출처 목록, 시행 기준일, 시행 예정 안내, 면책 문구는 프로그램이 청크의 effective_date와 pending_effective_dates로 붙인 것이다. 지어낸 내용으로 보지 않고, 그 앞의 본문만 채점한다.
 
 reason에는 답변과 조문의 어느 부분을 보고 판단했는지 한두 문장으로 쓴다."""
 
@@ -112,7 +114,11 @@ def answer_score(question: Question, verdict: Verdict) -> int:
 def judge_prompt(question: Question, chunks: list[Chunk], reply: Answer) -> str:
     key_points = "\n".join(f"{i}. {kp}" for i, kp in enumerate(question.key_points, start=1))
     if chunks:
-        provided = "\n\n".join(f'<chunk id="{c.id}">\n{c.text}\n</chunk>' for c in chunks)
+        provided = "\n\n".join(
+            f'<chunk id="{c.id}" effective_date="{c.effective_date}" '
+            f'pending_effective_dates="{",".join(c.pending_effective_dates)}">\n{c.text}\n</chunk>'
+            for c in chunks
+        )
     else:
         provided = "(제공된 조문 없음)"
     cited = ", ".join(reply.cited_ids) or "(없음)"
