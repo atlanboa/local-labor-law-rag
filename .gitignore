@@ -15,3 +15,6 @@ wheels/
 # Rebuilt from data/raw, which stays tracked
 data/chunks/
 data/chroma/
+
+# Per-run eval output; the accepted run is eval/baseline.json
+eval/results/

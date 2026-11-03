@@ -26,9 +26,36 @@ uv run python -m lawbot.collect
 uv run pytest
 ```
 
+## 실행
+
+```bash
+uv run index
+```
+
+```bash
+uv run ask "5인 미만 사업장도 연차가 있나요?"
+```
+
+```bash
+uv run eval
+```
+
+`index`는 `data/raw`에서 청크를 만들어 Chroma에 저장하고, `ask`는 질문 하나에 답하고, `eval`은 `eval/questions.jsonl`로 점수를 낸다.
+
 ## 구조
 
-- `src/lawbot/models.py`: 청크와 답변 형식
-- `src/lawbot/search.py`: 질문으로 청크 검색
-- `src/lawbot/answer.py`: 질문과 청크로 답변 생성
-- `data/raw/`: API 응답 원본. 커밋한다. 청크와 Chroma 데이터는 여기서 다시 만든다.
+| 파일 | 역할 |
+| --- | --- |
+| `src/lawbot/models.py` | `Chunk`, `Answer` 형식 |
+| `src/lawbot/config.py` | 경로, 모델 이름, 검색 개수 등 공유 설정 |
+| `src/lawbot/collect.py` | 법령 API 수집 |
+| `src/lawbot/index.py` | 청킹, 임베딩, Chroma 저장 |
+| `src/lawbot/search.py` | `search(question, k) -> list[Chunk]` |
+| `src/lawbot/answer.py` | `answer(question, chunks) -> Answer` |
+| `src/lawbot/cli.py` | `ask` 명령 |
+| `src/lawbot/evaluate.py` | `eval` 명령 |
+| `data/raw/` | API 응답 원본. 커밋한다 |
+| `data/chroma/` | `index`가 만드는 벡터 DB. 커밋하지 않는다 |
+| `eval/` | 평가 질문, 기준선 `baseline.json`. 실행별 결과 `results/`는 커밋하지 않는다 |
+
+채팅 모델은 `LAWBOT_CHAT_MODEL` 환경 변수로 바꾼다. 기본값은 `qwen3.5:9b-q8_0`이다.

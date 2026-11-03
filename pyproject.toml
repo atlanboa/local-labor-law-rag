@@ -8,9 +8,16 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=2.4.0",
+    "chromadb>=1.5.9",
     "httpx>=0.28.1",
     "python-dotenv>=1.2.4",
 ]
+
+[project.scripts]
+index = "lawbot.index:main"
+ask = "lawbot.cli:main"
+eval = "lawbot.evaluate:main"
 
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]

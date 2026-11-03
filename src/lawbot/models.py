@@ -13,6 +13,8 @@ class Chunk:
     effective_date: str
     collected_at: str
     refs: tuple[str, ...] = ()
+    # Dates of amendments not yet in force for this article, from manifest article_effective_dates.
+    pending_effective_dates: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
