@@ -16,14 +16,24 @@
 | 법령 수집 `collect.py` | 완료. 법령 5개 본문(`eflaw`), 법률 4개 연결표 |
 | 평가 질문 41개 | 완료. 다른 모델의 원문 대조 2회. [eval/README.md](../eval/README.md) |
 | 공유 설정과 계약 | 완료. `config.py`, `models.py`, `search.get_chunks`, 실행 명령 3개 |
-| 청킹, 임베딩, 검색 | 시작 전. 브랜치 `feat/index` |
-| 답변 생성, `ask` | 시작 전. 브랜치 `feat/answer` |
-| 평가 스크립트 `eval` | 시작 전. 브랜치 `feat/evaluate` |
-| 기준선 `eval/baseline.json` | 위 세 개를 병합한 뒤 |
+| 청킹, 임베딩, 검색 | 완료. `feat/index` 병합 |
+| 답변 생성, `ask` | 완료. `feat/answer` 병합 |
+| 평가 스크립트 `eval` | 완료. `feat/evaluate` 병합 |
+| 기준선 `eval/baseline.json` | 다음 할 일. 아래 "병합 후 순서" 2번부터 |
 
-`main`은 `origin/main`보다 3커밋 앞서 있다. 아직 푸시하지 않았다.
+2026-11-03에 세 브랜치를 검증하고 `main`에 병합했다. 병합 후 `tests/test_cli.py`의 search 미구현 전제 테스트가 깨져 `a482814`에서 지웠다. `uv run pytest`는 58개 통과다. `main`은 아직 푸시하지 않았다.
 
-## 진행 중인 병렬 작업
+### 병합 전 검증에서 본 것
+
+- 조문 수, 별표 수, `required` 일치, refs, `pending_effective_dates`, `index` 두 번 실행 결과가 모두 기준과 맞았다. 청크는 394개다.
+- 실제 답변 q006과 q030이 틀렸다. q006은 별표 1을 "제1장부터 제6장까지 적용"으로 잘못 읽어 구제신청이 된다고 했다. q030은 해석필요인데 보상을 받을 수 있다고 단정했다. q001은 통상임금 지급과 예외를 빠뜨렸다. 기준선에서 점수로 확인한다.
+- 실제 채점 1회는 q006 오답을 0점(`fabricated: true`)으로 잡았다. 토큰은 입력 3552, 출력 1129다.
+- 첫 Ollama 호출이 `exit status 0xc0000409`로 죽고 재시도에서 성공했다. 콜드 로드 오류가 다시 나왔다.
+- `cli.py`의 `--chunks`는 `index.py`와 다른 청킹 코드를 따로 갖고 있다. 본문 구분자와 별표구분 필터가 다르다. `get_chunks`로 바꾸고 지운다.
+- `삭제` 조문 8개가 청크에 들어 있다. 시행령 별표 6(약 1.4만 자)이 해고 질문의 검색 1위로 나온다. 개선 후보로 본다.
+- `--save-baseline`을 `--limit`이나 `--only search`와 함께 쓰면 부분 결과가 기준선이 된다. 기준선은 전체 실행으로 저장한다.
+
+## 2라운드 병렬 작업 (병합 완료)
 
 worktree 3개가 `main`의 `69a706f`에서 만들어져 있다. 각 폴더에서 `claude`를 실행하고 [prompts/round2.md](prompts/round2.md)의 지시문을 붙여넣는다.
 
@@ -124,7 +134,9 @@ git diff --stat main..feat/index
 ## 남은 일
 
 **1단계에서 할 일**
-- [ ] 세 브랜치 검증과 병합, 기준선
+- [x] 세 브랜치 검증과 병합
+- [ ] 기준선
+- [ ] `cli.py --chunks`를 `get_chunks`로 바꾸고 중복 청킹 코드 삭제
 - [ ] `docs/agent-log.md`: 세션별 작업, 병렬 여부, 사용량, 사람이 수정을 지시한 횟수
 - [ ] 기준선이 생긴 뒤 `/pstack:create-verification-skill`로 검증 스킬 만들기
 - [ ] `main` 푸시
@@ -140,4 +152,4 @@ git diff --stat main..feat/index
 - 채팅 UI와 잡담 판단, 질문 재작성
 
 **정리**
-- 병합이 끝난 브랜치(`docs/law-api`, `prep/round2`, `eval/answer-key-review`, `feat/collect`, `feat/eval-questions`)와 worktree(`lawbot-collect`, `lawbot-eval`) 삭제
+- 병합이 끝난 브랜치(`docs/law-api`, `prep/round2`, `eval/answer-key-review`, `feat/collect`, `feat/eval-questions`, `feat/index`, `feat/answer`, `feat/evaluate`)와 worktree(`lawbot-collect`, `lawbot-eval`, `lawbot-index`, `lawbot-answer`, `lawbot-evaluate`) 삭제
