@@ -11,7 +11,7 @@ BASELINE_PATH = ROOT / "eval" / "baseline.json"
 
 OLLAMA_URL = os.environ.get("LAWBOT_OLLAMA_URL", "http://127.0.0.1:11434")
 EMBED_MODEL = "bge-m3:latest"
-CHAT_MODEL = os.environ.get("LAWBOT_CHAT_MODEL", "qwen3.5:9b-q8_0")
+CHAT_MODEL = os.environ.get("LAWBOT_CHAT_MODEL", "gemma4:12b-it-q4_K_M")
 NUM_CTX = 8192
 TOP_K = 5
 

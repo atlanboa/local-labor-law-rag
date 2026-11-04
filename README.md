@@ -58,4 +58,4 @@ uv run eval
 | `data/chroma/` | `index`가 만드는 벡터 DB. 커밋하지 않는다 |
 | `eval/` | 평가 질문, 기준선 `baseline.json`. 실행별 결과 `results/`는 커밋하지 않는다 |
 
-채팅 모델은 `LAWBOT_CHAT_MODEL` 환경 변수로 바꾼다. 기본값은 `qwen3.5:9b-q8_0`이다.
+채팅 모델은 `LAWBOT_CHAT_MODEL` 환경 변수로 바꾼다. 기본값은 `gemma4:12b-it-q4_K_M`이다.
