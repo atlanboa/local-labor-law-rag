@@ -21,7 +21,7 @@
 | 평가 스크립트 `eval` | 완료. `feat/evaluate` 병합 |
 | 기준선 `eval/baseline.json` | 완료. Gemma, 검색 0.639, 답변 0.537 |
 
-2026-11-03에 세 브랜치를 검증하고 `main`에 병합했다. 병합 후 `tests/test_cli.py`의 search 미구현 전제 테스트가 깨져 `a482814`에서 지웠다. `uv run pytest`는 58개 통과다. `main`은 아직 푸시하지 않았다.
+2026-11-03에 세 브랜치를 검증하고 `main`에 병합했다. 병합 후 `tests/test_cli.py`의 search 미구현 전제 테스트가 깨져 `a482814`에서 지웠다. `uv run pytest`는 58개 통과다. 2026-11-04에 `main`을 `origin/main`으로 푸시했다(`da380ff`).
 
 ### 병합 전 검증에서 본 것
 
@@ -173,7 +173,7 @@ git diff --stat main..feat/index
 - [x] `cli.py --chunks`를 `get_chunks`로 바꾸고 중복 청킹 코드 삭제
 - [x] `docs/agent-log.md`: 세션별 작업, 병렬 여부, 사용량, 사람이 수정을 지시한 횟수
 - [ ] 기준선이 생긴 뒤 `/pstack:create-verification-skill`로 검증 스킬 만들기
-- [ ] `main` 푸시
+- [x] `main` 푸시
 
 **기준선 이후 개선 후보.** 점수로 효과를 확인한다.
 - refs를 따라 연결 조문 함께 가져오기
