@@ -149,7 +149,7 @@ git diff --stat main..feat/index
 - Claude 데스크톱 앱 안에서 `uv`가 Python을 설치하면 실패한다. 앱이 `AppData` 쓰기를 앱 전용 폴더로 돌리기 때문이다. `UV_PYTHON_INSTALL_DIR=%USERPROFILE%\.local\share\uv\python`을 지정한다. 일반 터미널의 `claude` CLI에서는 이 문제가 없었다.
 - Ollama 모델: `qwen3.5:9b-q8_0`(약 74~80 tok/s), `gemma4:12b-it-q4_K_M`(약 132~165 tok/s), `bge-m3:latest`(1024차원). 모델을 올리면 VRAM 여유가 약 4GB다.
 - Gemma 콜드 로드가 `CUDA error: shared object initialization failed`로 한 번 실패한 적이 있다. 재현되지 않았다. Ollama 호출은 한 번 재시도한다.
-- CLI 세션 기록: `%USERPROFILE%\.claude\projects\<폴더 경로>\*.jsonl`. 사용량과 지시 횟수를 여기서 뽑는다.
+- CLI 세션 기록: `%USERPROFILE%\.claude\projects\<폴더 경로>\*.jsonl`. `scripts/session_stats.py`로 사용량과 사람 입력을 뽑아 [agent-log.md](agent-log.md)에 적는다.
 
 ## 에이전트 사용 교훈
 
@@ -160,7 +160,8 @@ git diff --stat main..feat/index
 5. **작성자와 검토자를 나눈다.** 감사 스킬과 다른 모델이 작성자 검토에서 놓친 문제를 찾았다. 시행 전 조문, 원문에 없는 "일요일 제외" 등이다.
 6. **보고가 아니라 결과로 확인한다.** 데이터 대조와 가짜 응답 시험으로 빠진 검사를 찾았다.
 7. **검토 지적은 선별한다.** 전부 반영하면 범위가 끝없이 커진다. 반영하지 않을 기준을 규칙으로 남긴다.
-8. **긴 세션은 문서로 넘긴다.** 이 문서가 그 예다.
+8. **긴 세션은 문서로 넘긴다.** 이 문서가 그 예다. 비용 대부분은 긴 대화 세션의 캐시 읽기였다. 메인 세션 하나가 전체 캐시 읽기의 72%를 썼다.
+9. **작업자는 자기 worktree 폴더에서 시작한다.** 세션은 시작한 폴더에 묶인다. 1라운드 수집 세션은 루트에서 시작해 보고를 복구하는 세션이 따로 필요했다.
 
 ## 남은 일
 
@@ -170,7 +171,7 @@ git diff --stat main..feat/index
 - [x] 채팅 기본 모델 결정: Gemma
 - [ ] q018, q035 정답지 검토
 - [x] `cli.py --chunks`를 `get_chunks`로 바꾸고 중복 청킹 코드 삭제
-- [ ] `docs/agent-log.md`: 세션별 작업, 병렬 여부, 사용량, 사람이 수정을 지시한 횟수
+- [x] `docs/agent-log.md`: 세션별 작업, 병렬 여부, 사용량, 사람이 수정을 지시한 횟수
 - [ ] 기준선이 생긴 뒤 `/pstack:create-verification-skill`로 검증 스킬 만들기
 - [ ] `main` 푸시
 
