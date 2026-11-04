@@ -172,7 +172,7 @@ git diff --stat main..feat/index
 - [ ] q018, q035 정답지 검토
 - [x] `cli.py --chunks`를 `get_chunks`로 바꾸고 중복 청킹 코드 삭제
 - [x] `docs/agent-log.md`: 세션별 작업, 병렬 여부, 사용량, 사람이 수정을 지시한 횟수
-- [ ] 기준선이 생긴 뒤 `/pstack:create-verification-skill`로 검증 스킬 만들기
+- [ ] 기준선이 생긴 뒤 `/pstack:create-verification-skill`로 검증 스킬 만들기. 지시문은 [prompts/verification-skill.md](prompts/verification-skill.md), 브랜치는 `feat/verify-skill`
 - [x] `main` 푸시
 
 **기준선 이후 개선 후보.** 점수로 효과를 확인한다.
@@ -186,4 +186,4 @@ git diff --stat main..feat/index
 - 채팅 UI와 잡담 판단, 질문 재작성
 
 **정리**
-- 병합이 끝난 브랜치(`docs/law-api`, `prep/round2`, `eval/answer-key-review`, `feat/collect`, `feat/eval-questions`, `feat/index`, `feat/answer`, `feat/evaluate`)와 worktree(`lawbot-collect`, `lawbot-eval`, `lawbot-index`, `lawbot-answer`, `lawbot-evaluate`) 삭제
+- 2026-11-04: 병합이 끝난 브랜치 9개와 worktree 5개를 지웠다. 원격에는 `main`만 있었다. `lawbot-index`, `lawbot-answer`, `lawbot-evaluate`는 빈 폴더가 남았다. 그 폴더를 현재 폴더로 쓰는 터미널이 있어 지워지지 않았다. 터미널을 닫고 지운다
