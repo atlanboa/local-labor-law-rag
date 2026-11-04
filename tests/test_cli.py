@@ -28,37 +28,32 @@ def ollama(monkeypatch):
     return fake
 
 
-def test_chunks_option_builds_chunks_from_raw_data(ollama, capsys):
-    ids = "근로기준법 제26조, 근로기준법 시행령 별표 1"
+def stored(chunk_id, text):
+    law, article = chunk_id.rsplit(" ", 1)
+    return Chunk(chunk_id, law, article, "", text, "20261008", "2026-11-02")
 
-    assert cli.main(["해고 예고는?", "--chunks", ids]) == 0
+
+@pytest.fixture
+def index_store(monkeypatch):
+    chunks = {
+        "근로기준법 제26조": stored("근로기준법 제26조", "근로기준법 제26조(해고의 예고) 사용자는 근로자를 해고"),
+        "근로기준법 제11조": stored("근로기준법 제11조", "근로기준법 제11조(적용 범위) 이 법은"),
+    }
+    monkeypatch.setattr(cli, "get_chunks", lambda ids: [chunks[i] for i in ids if i in chunks])
+
+
+def test_chunks_option_answers_from_stored_chunks_in_given_order(ollama, index_store, capsys):
+    assert cli.main(["해고 예고는?", "--chunks", "근로기준법 제26조, 근로기준법 제11조"]) == 0
 
     prompt = ollama.prompts[0]
-    assert "[1] 근로기준법 제26조(해고의 예고) 사용자는 근로자를 해고" in prompt
-    assert "3개월 미만인 경우" in prompt
-    assert "[2] 근로기준법 시행령 별표 1 상시 4명 이하의" in prompt
+    assert prompt.index("[1] 근로기준법 제26조(해고의 예고)") < prompt.index("[2] 근로기준법 제11조(적용 범위)")
     out = capsys.readouterr().out
     assert "근로기준법 제26조 (2026-10-08 시행 기준)" in out
     assert out.rstrip().endswith(config.DISCLAIMER)
 
 
-def test_raw_chunks_carry_pending_effective_dates_per_article():
-    chunks = cli.load_chunks(["근로기준법 제13조", "근로기준법 제116조", "근로기준법 제26조"])
-
-    assert [chunk.pending_effective_dates for chunk in chunks] == [("20261208",), ("20261208", "20270101"), ()]
-
-
-def test_raw_chunks_skip_chapter_headings_and_cover_every_eval_answer_key():
-    chunks = cli.chunks_from_raw(config.RAW_DIR)
-
-    articles = [chunk for chunk in chunks.values() if chunk.law == "근로기준법" and "별표" not in chunk.article]
-    assert len(articles) == 132
-    keys = {key for line in config.QUESTIONS_PATH.open(encoding="utf-8") for key in json.loads(line)["required"]}
-    assert keys <= chunks.keys()
-
-
-def test_unknown_chunk_id_fails(ollama, capsys):
-    assert cli.main(["질문", "--chunks", "근로기준법 제999조"]) == 1
+def test_unknown_chunk_id_fails(ollama, index_store, capsys):
+    assert cli.main(["질문", "--chunks", "근로기준법 제26조,근로기준법 제999조"]) == 1
 
     assert "근로기준법 제999조" in capsys.readouterr().err
     assert ollama.prompts == []

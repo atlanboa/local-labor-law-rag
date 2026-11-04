@@ -33,6 +33,11 @@ def test_one_chunk_per_article_and_appendix_without_chapter_rows(corpus):
     assert not any("제1장" in chunk.text.split("\n")[0] for chunk in corpus.chunks)
 
 
+def test_every_eval_answer_key_is_a_chunk_id(chunks):
+    keys = {key for line in config.QUESTIONS_PATH.open(encoding="utf-8") for key in json.loads(line)["required"]}
+    assert keys <= chunks.keys()
+
+
 def test_article_ids_use_law_name_and_branch_number(chunks):
     assert "근로기준법 제43조의2" in chunks
     assert "남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률 제19조" in chunks
