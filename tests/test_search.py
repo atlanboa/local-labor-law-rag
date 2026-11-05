@@ -2,7 +2,7 @@ import hashlib
 
 import pytest
 
-from lawbot import config, index, search
+from lawbot import config, expand, index, retrieve, search
 from lawbot.models import Chunk
 
 
@@ -57,6 +57,60 @@ def test_search_returns_whole_chunks_without_following_refs(monkeypatch, store_d
     monkeypatch.setattr(index, "embed", lambda texts: [[1.0, 0.0]])
 
     assert search.search("질문", k=1) == [chunks[0]]
+
+
+@pytest.fixture
+def stages(monkeypatch):
+    # Fake retrieve and expand; no Ollama, no Chroma.
+    calls = {}
+
+    def use(found, added):
+        def fake_retrieve(question, k):
+            calls["retrieve"] = (question, k)
+            return [make_chunk(chunk_id) for chunk_id in found]
+
+        def fake_expand(question, chunks):
+            calls["expand"] = (question, [chunk.id for chunk in chunks])
+            return [make_chunk(chunk_id) for chunk_id in added]
+
+        monkeypatch.setattr(retrieve, "retrieve", fake_retrieve)
+        monkeypatch.setattr(expand, "expand", fake_expand)
+        return calls
+
+    return use
+
+
+def ids(chunks):
+    return [chunk.id for chunk in chunks]
+
+
+def test_search_appends_expanded_chunks_after_found(monkeypatch, stages):
+    monkeypatch.setattr(config, "MAX_CHUNKS", 10)
+    calls = stages(found=["b", "a"], added=["d", "c"])
+
+    assert ids(search.search("질문", k=2)) == ["b", "a", "d", "c"]
+    assert calls == {"retrieve": ("질문", 2), "expand": ("질문", ["b", "a"])}
+
+
+def test_search_keeps_first_of_duplicate_ids(monkeypatch, stages):
+    monkeypatch.setattr(config, "MAX_CHUNKS", 10)
+    stages(found=["a", "b", "a"], added=["b", "c", "c"])
+
+    assert ids(search.search("질문", k=3)) == ["a", "b", "c"]
+
+
+def test_search_cuts_at_max_chunks_after_dedup(monkeypatch, stages):
+    monkeypatch.setattr(config, "MAX_CHUNKS", 3)
+    stages(found=["a", "b"], added=["a", "c", "d"])
+
+    assert ids(search.search("질문", k=2)) == ["a", "b", "c"]
+
+
+def test_search_cuts_found_too_when_k_exceeds_max_chunks(monkeypatch, stages):
+    monkeypatch.setattr(config, "MAX_CHUNKS", 2)
+    stages(found=["a", "b", "c"], added=["d"])
+
+    assert ids(search.search("질문", k=3)) == ["a", "b"]
 
 
 def test_get_chunks_keeps_requested_order_and_skips_unknown_ids(monkeypatch, store_dir):

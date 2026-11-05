@@ -249,6 +249,7 @@ def run(
         "judge_model": None if only_search else config.JUDGE_MODEL,
         "rubric_version": RUBRIC_VERSION,
         "top_k": config.TOP_K,
+        "max_chunks": config.MAX_CHUNKS,
         "summary": {"search": summarize(items, "search_score"), "answer": summarize(items, "answer_score")},
         "items": items,
     }
