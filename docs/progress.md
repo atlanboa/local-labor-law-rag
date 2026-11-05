@@ -172,7 +172,10 @@ git diff --stat main..feat/index
 - [x] q018, q035 정답지 검토
 - [x] `cli.py --chunks`를 `get_chunks`로 바꾸고 중복 청킹 코드 삭제
 - [x] `docs/agent-log.md`: 세션별 작업, 병렬 여부, 사용량, 사람이 수정을 지시한 횟수
-- [ ] 기준선이 생긴 뒤 `/pstack:create-verification-skill`로 검증 스킬 만들기. 지시문은 [prompts/verification-skill.md](prompts/verification-skill.md), 브랜치는 `feat/verify-skill`. 2026-11-05 작업 세션이 `6212954`로 커밋했다. 병합 전 검증과, 바뀐 기준선에서 PASS가 나오는지 확인이 남았다
+- [x] 검증 스킬 `/verify`(`.claude/skills/verify/SKILL.md`, `scripts/verify.py`). 지시문은 [prompts/verification-skill.md](prompts/verification-skill.md). 2026-11-05 병합 전 검증: main에서 PASS(답변 0.585, API 호출 0, 102초), 새 worktree에서 PASS(검색만, 30초), 실패 시험 4개(없는 Ollama 포트, 없는 모델, 높인 기준선 사본, `TOP_K` 5→2) 모두 STOP 또는 FAIL. 주의할 점:
+  - `.env`가 없으면 답변 평가 없이 `PASS (검색만)`, exit 0이다. 답변 쪽을 고치는 작업자 worktree에는 `.env`를 두거나, 병합 전에 메인 세션이 전체 검증을 돌린다
+  - 새 worktree는 채점 캐시가 비어 첫 전체 검증에서 Haiku를 41번 부른다
+  - 키 확인은 `.env` 파일만 본다. 환경 변수의 `ANTHROPIC_API_KEY`는 보지 않는다
 - [x] `main` 푸시
 
 **기준선 이후 개선 후보.** 점수로 효과를 확인한다.
