@@ -51,12 +51,12 @@ def test_search_ranks_by_cosine_not_euclidean_distance(monkeypatch, store_dir):
     assert [chunk.id for chunk in search.search("질문", k=2)] == ["far", "near"]
 
 
-def test_search_returns_whole_chunks_without_following_refs(monkeypatch, store_dir):
+def test_search_returns_whole_chunks_and_appends_top_refs(monkeypatch, store_dir):
     chunks = [make_chunk("a", refs=("b",)), make_chunk("b")]
     index.store(chunks, [[1.0, 0.0], [0.0, 1.0]])
     monkeypatch.setattr(index, "embed", lambda texts: [[1.0, 0.0]])
 
-    assert search.search("질문", k=1) == [chunks[0]]
+    assert search.search("질문", k=1) == chunks
 
 
 @pytest.fixture
