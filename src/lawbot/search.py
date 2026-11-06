@@ -1,13 +1,16 @@
 from collections.abc import Iterable
 
-from lawbot import index
+from lawbot import config, expand, index, retrieve
 from lawbot.models import Chunk
 
 
-def search(question: str, k: int = 5) -> list[Chunk]:
-    (vector,) = index.embed([question])
-    result = index.open_collection().query(query_embeddings=[vector], n_results=k, include=["metadatas"])
-    return [index.chunk_from_json(metadata["chunk"]) for metadata in result["metadatas"][0]]
+def search(question: str, k: int = config.TOP_K) -> list[Chunk]:
+    found = retrieve.retrieve(question, k)
+    added = expand.expand(question, found)
+    unique: dict[str, Chunk] = {}
+    for chunk in found + added:
+        unique.setdefault(chunk.id, chunk)
+    return list(unique.values())[: config.MAX_CHUNKS]
 
 
 def get_chunks(ids: Iterable[str]) -> list[Chunk]:
