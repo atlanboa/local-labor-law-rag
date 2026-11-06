@@ -15,7 +15,7 @@ CHAT_MODEL = os.environ.get("LAWBOT_CHAT_MODEL", "gemma4:12b-it-q4_K_M")
 NUM_CTX = 8192
 # TOP_K: candidates from retrieve(). MAX_CHUNKS: cap on chunks search() passes to the answer.
 TOP_K = int(os.environ.get("LAWBOT_TOP_K", "5"))
-MAX_CHUNKS = int(os.environ.get("LAWBOT_MAX_CHUNKS", "5"))
+MAX_CHUNKS = int(os.environ.get("LAWBOT_MAX_CHUNKS", "6"))
 
 JUDGE_MODEL = "claude-haiku-5-5"
 
