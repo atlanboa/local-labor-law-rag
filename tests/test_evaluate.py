@@ -107,7 +107,8 @@ def test_full_run_scores_answers_and_records_model_and_time(workspace):
     assert result["summary"]["answer"]["by_type"]["해석필요"]["score"] == 0
     assert result["chat_model"] == config.CHAT_MODEL
     assert result["judge_model"] == config.JUDGE_MODEL
-    assert all(item["answer"]["seconds"] >= 0 for item in result["items"])
+    assert all(len(item["runs"]) == 1 and item["runs"][0]["answer"]["seconds"] >= 0 for item in result["items"])
+    assert result["summary"]["answer_runs"] == [3]
     # Default contexts are the search results.
     assert result["items"][1]["context_ids"] == ["근로기준법 제55조"]
     assert result["summary"]["judge_usage"]["input_tokens"] == 40
@@ -132,7 +133,7 @@ def test_same_answer_is_judged_once(workspace):
 
     assert len(judge.calls) == 2
     result = latest_run(workspace)
-    assert all(item["judge"]["cached"] for item in result["items"])
+    assert all(item["runs"][0]["judge"]["cached"] for item in result["items"])
     assert result["summary"]["judge_usage"]["calls"] == 0
 
 
@@ -143,6 +144,68 @@ def test_changed_answer_is_judged_again(workspace, monkeypatch):
     evaluate.main(["--limit", "1"], judge=judge)
 
     assert len(judge.calls) == 2
+
+
+def test_repeat_answers_whole_passes_and_takes_the_majority(workspace, monkeypatch):
+    # q1 answers alternate between two texts; the judge fails text "B". Runs give q1: A, B, A.
+    asked = []
+
+    def flaky_answer(question, chunks):
+        asked.append(question)
+        if question == "해고 예고는?":
+            count = asked.count(question)
+            return Answer(text="A" if count % 2 else "B")
+        return fake_answer(question, chunks)
+
+    class FailsB(FakeJudge):
+        def __call__(self, question, chunks, reply):
+            judgement = super().__call__(question, chunks, reply)
+            if reply.text == "B":
+                judgement.verdict.fabricated = True
+            return judgement
+
+    monkeypatch.setattr(evaluate, "answer", flaky_answer)
+    judge = FailsB()
+    evaluate.main(["--limit", "2", "--repeat", "3"], judge=judge)
+
+    # Whole passes in order, not one question three times in a row.
+    assert asked == ["해고 예고는?", "연차와 휴일?"] * 3
+    result = latest_run(workspace)
+    q1 = result["items"][0]
+    assert [run["answer_score"] for run in q1["runs"]] == [1, 0, 1]
+    assert q1["answer_score"] == 1
+    assert result["summary"]["answer_runs"] == [2, 1, 2]
+    assert result["options"]["repeat"] == 3
+    # Text A and q2's answer repeat, so only the first of each is judged.
+    assert result["summary"]["judge_usage"]["calls"] == 3
+    assert result["summary"]["judge_usage"]["cached"] == 3
+
+
+def test_majority_needs_more_than_half(workspace, monkeypatch):
+    asked = []
+
+    def flaky_answer(question, chunks):
+        asked.append(question)
+        return Answer(text="A" if len(asked) == 1 else "B")
+
+    class FailsB(FakeJudge):
+        def __call__(self, question, chunks, reply):
+            judgement = super().__call__(question, chunks, reply)
+            if reply.text == "B":
+                judgement.verdict.fabricated = True
+            return judgement
+
+    monkeypatch.setattr(evaluate, "answer", flaky_answer)
+    evaluate.main(["--limit", "1", "--repeat", "2"], judge=FailsB())
+
+    item = latest_run(workspace)["items"][0]
+    assert [run["answer_score"] for run in item["runs"]] == [1, 0]
+    assert item["answer_score"] == 0
+
+
+def test_repeat_must_be_positive():
+    with pytest.raises(SystemExit):
+        evaluate.parse_args(["--repeat", "0"])
 
 
 @pytest.mark.parametrize(

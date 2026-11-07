@@ -40,7 +40,7 @@ uv run ask "5인 미만 사업장도 연차가 있나요?"
 uv run eval
 ```
 
-`index`는 `data/raw`에서 청크를 만들어 Chroma에 저장하고, `ask`는 질문 하나에 답하고, `eval`은 `eval/questions.jsonl`로 점수를 낸다.
+`index`는 `data/raw`에서 청크를 만들어 Chroma에 저장하고, `ask`는 질문 하나에 답하고, `eval`은 `eval/questions.jsonl`로 점수를 낸다. `--repeat N`은 답변을 N번 돌려 문항별 과반으로 센다.
 
 ## 구조
 

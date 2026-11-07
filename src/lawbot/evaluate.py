@@ -1,6 +1,6 @@
 """Score retrieval and answers against eval/questions.jsonl.
 
-Usage: uv run eval [--only search] [--contexts gold] [--limit N] [--save-baseline]
+Usage: uv run eval [--only search] [--contexts gold] [--limit N] [--repeat N] [--save-baseline]
 """
 
 import argparse
@@ -214,37 +214,55 @@ def run(
     answer_fn: Callable[[str, list[Chunk]], Answer],
     judge: Judge | None,
     cache_dir: Path,
+    repeat: int = 1,
     log: Callable[[str], None] = print,
 ) -> dict:
     items = []
-    # Sequential on purpose: answer() runs on a single local GPU through Ollama.
-    for n, question in enumerate(questions, start=1):
+    contexts = []
+    for question in questions:
         retrieved = search_fn(question.question, config.TOP_K)
-        item = {
+        items.append({
             "id": question.id,
             "type": question.type,
             "question": question.question,
             "required": list(question.required),
             "retrieved_ids": [c.id for c in retrieved],
             "search_score": search_score(question, (c.id for c in retrieved)),
-        }
-        if not only_search:
-            chunks = get_chunks_fn(question.required) if gold_contexts else retrieved
+        })
+        contexts.append(get_chunks_fn(question.required) if gold_contexts else retrieved)
+    if only_search:
+        for n, item in enumerate(items, start=1):
+            log(f"[{n}/{len(items)}] {item['id']} search={item['search_score']}")
+
+    # Sequential on purpose: answer() runs on a single local GPU through Ollama.
+    # Repeat whole passes, not one question back to back: Gemma's output at temperature 0 still
+    # varies with Ollama's state, and asking the same question twice in a row hides that.
+    for r in range(0 if only_search else repeat):
+        for n, (question, item, chunks) in enumerate(zip(questions, items, contexts), start=1):
             started = time.perf_counter()
             reply = answer_fn(question.question, chunks)
             seconds = time.perf_counter() - started
             judgement, cached = cached_judge(judge, cache_dir, question, chunks, reply)
-            item |= {
-                "context_ids": [c.id for c in chunks],
+            item["context_ids"] = [c.id for c in chunks]
+            item.setdefault("runs", []).append({
                 "answer": {"text": reply.text, "cited_ids": list(reply.cited_ids), "seconds": round(seconds, 3)},
                 "judge": judgement.verdict.model_dump() | {"cached": cached, "usage": judgement.usage},
                 "answer_score": answer_score(question, judgement.verdict),
-            }
-        log(f"[{n}/{len(questions)}] {question.id} search={item['search_score']} answer={item.get('answer_score')}")
-        items.append(item)
+            })
+            log(f"[{r + 1}/{repeat}][{n}/{len(items)}] {question.id} search={item['search_score']} answer={item['runs'][-1]['answer_score']}")
+
+    for item in items:
+        if "runs" in item:
+            scores = [run["answer_score"] for run in item["runs"]]
+            # Strict majority: with repeat 3 a question counts as correct when 2 or 3 runs pass.
+            item["answer_score"] = int(2 * sum(scores) > len(scores))
 
     result = {
-        "options": {"only": "search" if only_search else None, "contexts": "gold" if gold_contexts else "search"},
+        "options": {
+            "only": "search" if only_search else None,
+            "contexts": "gold" if gold_contexts else "search",
+            "repeat": None if only_search else repeat,
+        },
         "chat_model": None if only_search else config.CHAT_MODEL,
         "judge_model": None if only_search else config.JUDGE_MODEL,
         "rubric_version": RUBRIC_VERSION,
@@ -254,11 +272,14 @@ def run(
         "items": items,
     }
     if not only_search:
-        judged = [item for item in items if not item["judge"]["cached"]]
-        result["summary"]["answer_seconds"] = round(sum(item["answer"]["seconds"] for item in items), 3)
+        runs = [run for item in items for run in item["runs"]]
+        judged = [run for run in runs if not run["judge"]["cached"]]
+        # Correct answers in each pass, before the majority vote.
+        result["summary"]["answer_runs"] = [sum(item["runs"][r]["answer_score"] for item in items) for r in range(repeat)]
+        result["summary"]["answer_seconds"] = round(sum(run["answer"]["seconds"] for run in runs), 3)
         result["summary"]["judge_usage"] = {
             "calls": len(judged),
-            "cached": len(items) - len(judged),
+            "cached": len(runs) - len(judged),
             "input_tokens": sum(item["judge"]["usage"].get("input_tokens", 0) for item in judged),
             "output_tokens": sum(item["judge"]["usage"].get("output_tokens", 0) for item in judged),
         }
@@ -275,6 +296,10 @@ def format_summary(result: dict) -> list[str]:
         lines.append(f"{kind}: {o['score']:.3f} ({o['correct']}/{o['n']})")
         for t, s in summary["by_type"].items():
             lines.append(f"  {t}: {s['score']:.3f} ({s['correct']}/{s['n']})")
+    if len(result["summary"].get("answer_runs", [])) > 1:
+        n = result["summary"]["answer"]["overall"]["n"]
+        per_run = ", ".join(f"{c}/{n}" for c in result["summary"]["answer_runs"])
+        lines.append(f"  answer per run: {per_run}; overall is the majority of {len(result['summary']['answer_runs'])} runs")
     if "judge_usage" in result["summary"]:
         u = result["summary"]["judge_usage"]
         lines.append(f"chat model: {result['chat_model']}, answer time: {result['summary']['answer_seconds']:.1f}s")
@@ -313,8 +338,12 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--only", choices=["search"], help="score retrieval only; no LLM calls")
     parser.add_argument("--contexts", choices=["search", "gold"], default="search", help="chunks given to answer()")
     parser.add_argument("--limit", type=int, help="use the first N questions")
+    parser.add_argument("--repeat", type=int, default=1, help="answer every question N times; a question counts when most runs pass")
     parser.add_argument("--save-baseline", action="store_true", help="write this run to eval/baseline.json")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.repeat < 1:
+        parser.error("--repeat must be 1 or more")
+    return args
 
 
 def make_client() -> anthropic.Anthropic:
@@ -342,6 +371,7 @@ def main(argv: list[str] | None = None, judge: Judge | None = None) -> int:
         answer_fn=answer,
         judge=judge,
         cache_dir=config.RESULTS_DIR / "judge-cache",
+        repeat=args.repeat,
     )
     result["options"]["limit"] = args.limit
 
