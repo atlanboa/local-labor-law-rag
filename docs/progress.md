@@ -19,7 +19,7 @@
 | 청킹, 임베딩, 검색 | 완료. `feat/index` 병합 |
 | 답변 생성, `ask` | 완료. `feat/answer` 병합 |
 | 평가 스크립트 `eval` | 완료. `feat/evaluate` 병합 |
-| 기준선 `eval/baseline.json` | Gemma, k5, 상한 6. 검색 0.722(26/36), 답변 0.610(25/41). 2026-11-06 refs 붙이기 병합 후 main `/verify` 실행을 그대로 썼다. 이전 기준선은 검색 0.639, 답변 0.585 |
+| 기준선 `eval/baseline.json` | Gemma, k5, 상한 6, 채점 `RUBRIC_VERSION` 4. 검색 0.722(26/36), 답변 0.707(29/41), 채점 모순 0건. 2026-11-09 채점기 수정 병합 후 main에서 `eval --save-baseline`(사람 결정). 답변 문장은 이전 기준선과 같고 점수 차이는 채점 차이다. 이전 기준선은 채점 버전 2로 검색 0.722, 답변 0.610 |
 
 2026-11-03에 세 브랜치를 검증하고 `main`에 병합했다. 병합 후 `tests/test_cli.py`의 search 미구현 전제 테스트가 깨져 `a482814`에서 지웠다. `uv run pytest`는 58개 통과다. 2026-11-04에 `main`을 `origin/main`으로 푸시했다(`da380ff`).
 
