@@ -24,7 +24,7 @@ from lawbot.models import Answer, Chunk
 from lawbot.search import get_chunks, search
 
 # Bump when the judge prompt or schema changes, so cached verdicts are not reused.
-RUBRIC_VERSION = "3"
+RUBRIC_VERSION = "4"
 NO_BASIS = "근거없음"
 NEEDS_INTERPRETATION = "해석필요"
 
@@ -41,14 +41,14 @@ EXPECTED_BEHAVIOR = {
 JUDGE_SYSTEM = """당신은 한국 노동법 상담봇의 답변을 채점한다. 근거는 사용자 메시지에 제공된 조문뿐이다. 당신이 아는 법률 지식으로 조문을 보충하지 않는다.
 
 채점 항목:
-1. key_points: 각 핵심 내용이 답변에 들어 있는지 판단한다. 원문의 조건(예외, 기한, 금액 기준)을 빠뜨렸으면 충족하지 않은 것이다. 같은 뜻이면 표현이 달라도 충족이다.
+1. key_points: 각 핵심 내용이 답변에 들어 있는지 판단한다. 원문의 조건(예외, 기한, 금액 기준)을 빠뜨렸으면 충족하지 않은 것이다. 같은 뜻이면 표현이 달라도 충족이다. 근거없음 유형에서 답변이 관련 조문이 없다고 말했으면, 질문이 묻는 규정이 대상 법령에 없음을 밝힌 것으로 본다.
 2. fabricated: 답변이 제공된 조문에 없는 법적 내용(조문 번호, 기한, 금액, 비율, 요건, 효과)을 사실처럼 말했으면 true다. 일반적인 안내(노무사나 고용노동부 문의 권유, 면책 문구)는 지어낸 것이 아니다. 조문이 하나도 제공되지 않았는데 구체적인 법적 내용을 단정하면 true다.
 3. citations_supported: 답변이 인용한 조문이 모두 제공된 조문에 있고, 답변에서 그 조문을 근거로 한 내용을 실제로 뒷받침하면 true다. 인용이 없는데 법적 내용을 말했으면 false다. 관련 조문이 없다고 답하는 문항에서 인용이 없으면 true다.
 4. expected_behavior_met: 질문 유형별 정답 행동을 지켰는지 판단한다.
 
 답변 끝의 출처 목록, 시행 기준일, 시행 예정 안내, 면책 문구는 프로그램이 청크의 effective_date와 pending_effective_dates로 붙인 것이다. 지어낸 내용으로 보지 않고, 그 앞의 본문만 채점한다.
 
-각 항목은 reason을 먼저 쓰고, 그 reason의 결론대로 판정(met, fabricated, citations_supported, expected_behavior_met)을 쓴다. reason에는 답변과 조문의 어느 부분을 보고 판단했는지 한두 문장으로 쓰고, 마지막 문장에 결론을 분명히 쓴다. 핵심 내용은 "충족한다" 또는 "충족하지 않는다"로 끝낸다. 판정은 reason의 마지막 문장과 반드시 같아야 한다. 일부만 충족해 판단이 갈리면 "충족하지 않는다"로 끝낸다."""
+각 항목은 reason을 먼저 쓰고, 그 reason의 결론대로 판정(met, fabricated, citations_supported, expected_behavior_met)을 쓴다. reason에는 답변과 조문의 어느 부분을 보고 판단했는지 한두 문장으로 쓰고, 마지막 문장에 결론을 분명히 쓴다. 핵심 내용은 "충족한다" 또는 "충족하지 않는다"로 끝낸다. 판정은 reason의 마지막 문장과 반드시 같아야 한다."""
 
 
 # Field order matters: the model writes the reason first, then the verdict that follows from it.
