@@ -272,3 +272,73 @@ def test_limited_run_compares_only_shared_questions(workspace, capsys):
 
     assert "search on 1 shared: 1.000 -> 1.000 (+0.000)" in capsys.readouterr().out
     assert len(list((workspace / "results").glob("run-*.json"))) == 2
+
+
+def test_reason_is_written_before_each_verdict():
+    # The judge writes fields in schema order, so a reason must come before the verdict it supports.
+    assert list(evaluate.KeyPointVerdict.model_fields) == ["index", "reason", "met"]
+    fields = list(evaluate.Verdict.model_fields)
+    for flag, reason in [
+        ("fabricated", "fabricated_reason"),
+        ("citations_supported", "citations_reason"),
+        ("expected_behavior_met", "expected_behavior_reason"),
+    ]:
+        assert fields.index(reason) + 1 == fields.index(flag)
+    assert fields[0] == "key_points"
+    properties = list(evaluate.KeyPointVerdict.model_json_schema()["properties"])
+    assert properties == ["index", "reason", "met"]
+    assert "reason" in evaluate.JUDGE_SYSTEM and "마지막 문장" in evaluate.JUDGE_SYSTEM
+
+
+def test_rubric_version_changes_the_cache_key(monkeypatch):
+    question = evaluate.Question("q", "질문", "단일", ("법 제1조",), ("a",))
+    chunks = [chunk("근로기준법 제1조")]
+    reply = Answer(text="답")
+    before = evaluate.cache_key(question, chunks, reply)
+    monkeypatch.setattr(evaluate, "RUBRIC_VERSION", evaluate.RUBRIC_VERSION + "x")
+    assert evaluate.cache_key(question, chunks, reply) != before
+
+
+def contradiction_verdict(*points):
+    return Verdict(
+        key_points=[KeyPointVerdict(index=i, reason=reason, met=met) for i, (reason, met) in enumerate(points, start=1)],
+        fabricated_reason="",
+        fabricated=False,
+        citations_reason="",
+        citations_supported=True,
+        expected_behavior_reason="",
+        expected_behavior_met=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "reason, met, flagged",
+    [
+        ("답변에 100분의 50이 적혀 있어 충족이다.", False, True),
+        ("답변은 이 요건을 빠뜨렸다. 따라서 충족하지 않은 것으로 본다.", True, True),
+        ("답변에 같은 내용이 있다. 충족한다.", True, False),
+        ("조건을 빠뜨렸으므로 충족하지 않는다.", False, False),
+        # A quoted answer or a clause is not the conclusion.
+        ("답변은 '요건을 충족하지 못합니다'라고 말해 서면 합의 요건을 담았다.", True, False),
+        ("답변은 미충족이라는 내용을 담고 있다.", True, False),
+        # No stated conclusion: not counted.
+        ("답변이 제시하지 않았다.", False, False),
+        ("", True, False),
+    ],
+)
+def test_kp_contradictions(reason, met, flagged):
+    found = evaluate.kp_contradictions(contradiction_verdict((reason, met)))
+    assert found == ([1] if flagged else [])
+
+
+def test_run_counts_contradictions(workspace):
+    class Contradicting(FakeJudge):
+        def __call__(self, question, chunks, reply):
+            judgement = super().__call__(question, chunks, reply)
+            judgement.verdict.key_points[0].reason = "내용이 있어 충족이다."
+            judgement.verdict.key_points[0].met = False
+            return judgement
+
+    evaluate.main(["--limit", "2"], judge=Contradicting())
+
+    assert latest_run(workspace)["summary"]["judge_contradictions"] == 2

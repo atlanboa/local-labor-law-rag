@@ -6,6 +6,7 @@ Usage: uv run eval [--only search] [--contexts gold] [--limit N] [--repeat N] [-
 import argparse
 import hashlib
 import json
+import re
 import sys
 import time
 from collections.abc import Callable, Iterable
@@ -23,7 +24,7 @@ from lawbot.models import Answer, Chunk
 from lawbot.search import get_chunks, search
 
 # Bump when the judge prompt or schema changes, so cached verdicts are not reused.
-RUBRIC_VERSION = "2"
+RUBRIC_VERSION = "4"
 NO_BASIS = "근거없음"
 NEEDS_INTERPRETATION = "해석필요"
 
@@ -40,30 +41,54 @@ EXPECTED_BEHAVIOR = {
 JUDGE_SYSTEM = """당신은 한국 노동법 상담봇의 답변을 채점한다. 근거는 사용자 메시지에 제공된 조문뿐이다. 당신이 아는 법률 지식으로 조문을 보충하지 않는다.
 
 채점 항목:
-1. key_points: 각 핵심 내용이 답변에 들어 있는지 판단한다. 원문의 조건(예외, 기한, 금액 기준)을 빠뜨렸으면 충족하지 않은 것이다. 같은 뜻이면 표현이 달라도 충족이다.
+1. key_points: 각 핵심 내용이 답변에 들어 있는지 판단한다. 원문의 조건(예외, 기한, 금액 기준)을 빠뜨렸으면 충족하지 않은 것이다. 같은 뜻이면 표현이 달라도 충족이다. 근거없음 유형에서 답변이 관련 조문이 없다고 말했으면, 질문이 묻는 규정이 대상 법령에 없음을 밝힌 것으로 본다.
 2. fabricated: 답변이 제공된 조문에 없는 법적 내용(조문 번호, 기한, 금액, 비율, 요건, 효과)을 사실처럼 말했으면 true다. 일반적인 안내(노무사나 고용노동부 문의 권유, 면책 문구)는 지어낸 것이 아니다. 조문이 하나도 제공되지 않았는데 구체적인 법적 내용을 단정하면 true다.
 3. citations_supported: 답변이 인용한 조문이 모두 제공된 조문에 있고, 답변에서 그 조문을 근거로 한 내용을 실제로 뒷받침하면 true다. 인용이 없는데 법적 내용을 말했으면 false다. 관련 조문이 없다고 답하는 문항에서 인용이 없으면 true다.
 4. expected_behavior_met: 질문 유형별 정답 행동을 지켰는지 판단한다.
 
 답변 끝의 출처 목록, 시행 기준일, 시행 예정 안내, 면책 문구는 프로그램이 청크의 effective_date와 pending_effective_dates로 붙인 것이다. 지어낸 내용으로 보지 않고, 그 앞의 본문만 채점한다.
 
-reason에는 답변과 조문의 어느 부분을 보고 판단했는지 한두 문장으로 쓴다."""
+각 항목은 reason을 먼저 쓰고, 그 reason의 결론대로 판정(met, fabricated, citations_supported, expected_behavior_met)을 쓴다. reason에는 답변과 조문의 어느 부분을 보고 판단했는지 한두 문장으로 쓰고, 마지막 문장에 결론을 분명히 쓴다. 핵심 내용은 "충족한다" 또는 "충족하지 않는다"로 끝낸다. 판정은 reason의 마지막 문장과 반드시 같아야 한다."""
 
 
+# Field order matters: the model writes the reason first, then the verdict that follows from it.
 class KeyPointVerdict(BaseModel):
     index: int
-    met: bool
     reason: str
+    met: bool
 
 
 class Verdict(BaseModel):
     key_points: list[KeyPointVerdict]
-    fabricated: bool
     fabricated_reason: str
-    citations_supported: bool
+    fabricated: bool
     citations_reason: str
-    expected_behavior_met: bool
+    citations_supported: bool
     expected_behavior_reason: str
+    expected_behavior_met: bool
+
+
+# Last sentence of a reason that states its own conclusion. Anchored to the sentence end so a
+# quoted answer ("... 충족하지 못합니다") or a clause ("... 미충족이라는 내용을 담았다") does not count.
+_UNMET = re.compile(r"(미충족(이다|한다)|충족(하|되)지 (않은 것으로 (본다|판단한다)|않는다|않았다|못한다|못했다)|충족.{0,8}보기 어렵다)\W*$")
+_MET = re.compile(r"충족(이다|한다|된다|합니다|하며|으로 (판단|본다)\S*)\W*$")
+
+
+def kp_contradictions(verdict: Verdict) -> list[int]:
+    """Key point indexes whose reason ends with the opposite of `met`.
+
+    A lower bound: reasons that conclude in other words are not caught.
+    """
+    found = []
+    for kp in verdict.key_points:
+        sentences = [s for s in re.split(r"(?<=[.!?])\s+", kp.reason.strip()) if s]
+        if not sentences:
+            continue
+        last = re.sub(r"'[^']*'|\"[^\"]*\"", "", sentences[-1])
+        stated = False if _UNMET.search(last) else True if _MET.search(last) else None
+        if stated is not None and stated != kp.met:
+            found.append(kp.index)
+    return found
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,6 +301,9 @@ def run(
         judged = [run for run in runs if not run["judge"]["cached"]]
         # Correct answers in each pass, before the majority vote.
         result["summary"]["answer_runs"] = [sum(item["runs"][r]["answer_score"] for item in items) for r in range(repeat)]
+        result["summary"]["judge_contradictions"] = sum(
+            len(kp_contradictions(Verdict.model_validate(r["judge"]))) for r in runs
+        )
         result["summary"]["answer_seconds"] = round(sum(run["answer"]["seconds"] for run in runs), 3)
         result["summary"]["judge_usage"] = {
             "calls": len(judged),
@@ -303,6 +331,7 @@ def format_summary(result: dict) -> list[str]:
     if "judge_usage" in result["summary"]:
         u = result["summary"]["judge_usage"]
         lines.append(f"chat model: {result['chat_model']}, answer time: {result['summary']['answer_seconds']:.1f}s")
+        lines.append(f"judge contradictions (reason ends opposite to met): {result['summary']['judge_contradictions']}")
         lines.append(
             f"judge: {result['judge_model']} calls={u['calls']} cached={u['cached']} "
             f"input_tokens={u['input_tokens']} output_tokens={u['output_tokens']}"
