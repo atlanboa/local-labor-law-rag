@@ -1,6 +1,6 @@
 # 진행 상황
 
-새 세션은 이 문서부터 읽는다. 마지막 갱신은 2026-11-05이다.
+새 세션은 이 문서부터 읽는다. 마지막 갱신은 2026-11-10이다.
 
 ## 목표
 
@@ -144,7 +144,7 @@ git diff --stat main..feat/index
 ## 환경 메모
 
 - 폴더: `<작업 폴더>\lawbot`. worktree는 그 옆에 만든다.
-- 원격: `https://github.com/atlanboa/lawbot` (비공개). `gh`로 로그인되어 있다.
+- 원격: `https://github.com/atlanboa/local-labor-law-rag` (공개). 2026-11-10 공개 전에 커밋 기록의 작성자 이메일을 GitHub noreply로 바꾸고 실명과 PC 경로를 지웠다(`git filter-repo`). 이전 비공개 저장소 `atlanboa/lawbot`은 옛 기록 그대로 남아 있다. 이 저장소의 커밋은 noreply 이메일로 한다. `gh`로 로그인되어 있다.
 - `.env`: `LAW_API_OC`, `ANTHROPIC_API_KEY`. 각 worktree에는 필요한 경우만 복사한다. `dev-digging\.env`는 저장소 밖 파일이고 코드가 읽지 않는다.
 - Claude 데스크톱 앱 안에서 `uv`가 Python을 설치하면 실패한다. 앱이 `AppData` 쓰기를 앱 전용 폴더로 돌리기 때문이다. `UV_PYTHON_INSTALL_DIR=%USERPROFILE%\.local\share\uv\python`을 지정한다. 일반 터미널의 `claude` CLI에서는 이 문제가 없었다.
 - Ollama 모델: `qwen3.5:9b-q8_0`(약 74~80 tok/s), `gemma4:12b-it-q4_K_M`(약 132~165 tok/s), `bge-m3:latest`(1024차원). 모델을 올리면 VRAM 여유가 약 4GB다.
@@ -218,12 +218,14 @@ git diff --stat main..feat/index
    - q012, q028은 판단이 갈리는 경우다. 핵심 내용 2번이 "1년 미만은 대상이 아니다", "서면 합의 없는 대체는 요건 미충족"처럼 부정문을 요구하는데, 답변은 요건을 제시해 암시만 한다. 새 채점은 "같은 뜻"으로 충족을 줬다. 예전 채점보다 너그럽다. 점수 비교는 같은 `RUBRIC_VERSION`끼리만 한다
 3. 5인 미만 순서: 세 조문을 found 밖 자리로 옮겨 주제 조문 자리를 만든다(q006, q022). 둘 다 살면 28/36으로 목표 0.75를 넘는다. `search.py`를 고친다
 4. 남은 검색 실패 분석: q007, q019, q020(제55조), q021, q030, q034, q039, q041. 하이브리드로도 못 살렸다. 질문 재작성이나 조문 제목 활용을 검토한다
-5. 정리: `feat/search-contract`, `feat/search-expand` 브랜치와 worktree 3개 삭제(`feat/search-hybrid` 브랜치는 기록으로 남김), `main` 푸시
+5. 정리: 병합한 `feat/search-contract`, `feat/search-expand`, `feat/judge-reason-first` 브랜치와 worktree 4개(`lawbot-contract`, `lawbot-hybrid`, `lawbot-expand`, `lawbot-judge`) 삭제. `feat/search-hybrid` 브랜치는 기록으로 남김. `main` 푸시(2026-11-09 기준 origin보다 17커밋 앞섬)
 6. 하위법령 수집과 평가 문항 추가
 
 **2단계**
 - 판례(`target=prec`)나 법령 해석례로 `해석필요` 문항의 근거 보강
-- 채팅 UI와 잡담 판단, 질문 재작성
+- [x] 채팅 UI 첫 판(2026-11-09). FastAPI `uv run serve`(`POST /api/ask`)와 `web/`의 Vite + React + TypeScript 화면. 스타일은 일반 CSS, 디자인 도구는 쓰지 않았다(사람 결정). 답변 본문의 `[n]`을 누르면 조문 원문이 펼쳐진다. `answer.py`에 본문과 인용 번호만 돌려주는 `generate()`를 뽑았고 `ask`, `eval` 출력은 그대로다
+  - 아직 없는 것: 스트리밍(답이 다 만들어진 뒤 한 번에 뜬다), 이전 대화를 반영하는 멀티턴, 잡담 판단, 질문 재작성. 화면 테스트도 없다
+- 잡담 판단, 질문 재작성, 스트리밍
 
 **정리**
 - 2026-11-04: 병합이 끝난 브랜치 9개와 worktree 5개를 지웠다. 원격에는 `main`만 있었다. 2라운드 터미널이 열려 있던 폴더 3개는 터미널을 닫은 뒤 지웠다. worktree를 지우기 전에 그 폴더에서 연 터미널부터 닫는다

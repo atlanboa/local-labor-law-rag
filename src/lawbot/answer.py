@@ -38,6 +38,14 @@ def answer_with_stats(question: str, chunks: list[Chunk]) -> tuple[Answer, ChatS
     if not chunks:
         return Answer(f"{NO_CHUNKS_TEXT}\n\n출처: 없음\n\n{config.DISCLAIMER}"), None
 
+    reply, cited, stats = generate(question, chunks)
+    cited_chunks = [chunks[number - 1] for number in cited]
+    text = "\n\n".join([reply, sources(chunks, cited), *pending_notes(cited_chunks), config.DISCLAIMER])
+    return Answer(text, tuple(chunk.id for chunk in cited_chunks)), stats
+
+
+def generate(question: str, chunks: list[Chunk]) -> tuple[str, list[int], ChatStats]:
+    """Model reply and the 1-based chunk numbers it cites, without sources or disclaimer."""
     started = time.perf_counter()
     response = chat(build_messages(question, chunks))
     stats = ChatStats(time.perf_counter() - started, response.get("prompt_eval_count"))
@@ -49,10 +57,7 @@ def answer_with_stats(question: str, chunks: list[Chunk]) -> tuple[Answer, ChatS
         )
 
     reply = response["message"]["content"].strip()
-    cited = cited_numbers(reply, len(chunks))
-    cited_chunks = [chunks[number - 1] for number in cited]
-    text = "\n\n".join([reply, sources(chunks, cited), *pending_notes(cited_chunks), config.DISCLAIMER])
-    return Answer(text, tuple(chunk.id for chunk in cited_chunks)), stats
+    return reply, cited_numbers(reply, len(chunks)), stats
 
 
 def build_messages(question: str, chunks: list[Chunk]) -> list[dict[str, str]]:
