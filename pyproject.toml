@@ -3,6 +3,7 @@ name = "lawbot"
 version = "0.1.0"
 description = "근로기준법 중심 로컬 RAG 상담봇"
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "atlanboa" }
 ]
